@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Add Task</title>
+  <style>
+    body {
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      background: linear-gradient(to right, #e0f7fa, #f0f4ff);
+      margin: 0;
+      padding: 20px; /* Prevent edge contact */
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      min-height: 100vh;
+      box-sizing: border-box;
+    }
+
+    .container {
+      background: #ffffff;
+      padding: 40px;
+      border-radius: 16px;
+      box-shadow: 0 8px 20px rgba(0,0,0,0.1);
+      width: 100%;
+      max-width: 400px;
+      text-align: center;
+    }
+
+    h1 {
+      color: #2c3e50;
+      margin-bottom: 25px;
+      font-size: 26px;
+    }
+
+    label {
+      display: block;
+      text-align: left;
+      font-weight: 600;
+      margin-bottom: 8px;
+      color: #34495e;
+    }
+
+    input[type="text"],
+    input[type="datetime-local"] {
+      width: 100%;
+      padding: 14px 16px;
+      margin-bottom: 20px;
+      border: 1px solid #ccc;
+      border-radius: 10px;
+      font-size: 16px;
+      background-color: #f9f9f9;
+      box-sizing: border-box;
+    }
+
+    button {
+      background: #4a90e2;
+      color: white;
+      border: none;
+      padding: 12px 20px;
+      font-size: 16px;
+      border-radius: 10px;
+      cursor: pointer;
+      transition: background 0.3s ease;
+      width: 100%;
+    }
+
+    button:hover {
+      background: #357ab8;
+    }
+
+    .back-link {
+      display: block;
+      margin-top: 18px;
+      color: #007bff;
+      text-decoration: none;
+      font-size: 14px;
+    }
+
+    .back-link:hover {
+      text-decoration: underline;
+    }
+
+    .note {
+      margin-top: 10px;
+      font-size: 13px;
+      color: #7f8c8d;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>➕ Add New Task</h1>
+    <form method="POST">
+      <label for="task">Task Name:</label>
+      <input type="text" id="task" name="task" required>
+
+      <label for="due_datetime">Due Date & Time:</label>
+      <input type="datetime-local" id="due_datetime" name="due_datetime" required>
+
+      <button type="submit">Add Task</button>
+    </form>
+    <a href="{{ url_for('home') }}" class="back-link">⬅ Back to Task List</a>
+    <div class="note">Time is in 24-hour format here. It will display as 12-hour on the homepage.</div>
+  </div>
+</body>
+</html>
+
+
+
+
