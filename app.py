@@ -6,31 +6,31 @@ from pywebpush import webpush, WebPushException
 
 app = Flask(__name__)
 
-#  Database Configuration
-app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///tasks.db'
-app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
-db = SQLAlchemy(app)
-
-#  VAPID Keys for Web Push
+# 🔐 VAPID Keys for Web Push
 VAPID_PUBLIC_KEY  = "BBiVJi8--fMfDeRDHI4RRYzv_CFlzDFqL7o3ahnFH_hWDl0q-mxcLpWoWwKL3eyF4OwYPYV1YmDMg4lngmyLkNE="
 VAPID_PRIVATE_KEY = "LS0tLS1CRUdJTiBQUklWQVRFIEtFWS0tLS0tCk1JR0hBZ0VBTUJNR0J5cUdTTTQ5QWdFR0NDcUdTTTQ5QXdFSEJHMHdhd0lCQVFRZytiZ3lyeDdwTXdTOU43bG0KejQzVzYySGo3ZUJZUmZkcEVnMUoyTU9uY2hlaFJBTkNBQVFZbFNZdlB2bnpIdzNrUXh5T0VVV003L3doWmN3eAphaSs2TjJvWnhSLzRWZzVkS3Zwc1hDNlZxRnNDaTkzc2hlRHNHRDJGZFdKZ3pJT0paNEpzaTVEUgotLS0tLUVORCBQUklWQVRFIEtFWS0tLS0tCg=="
 VAPID_EMAIL       = "mailto:your@email.com"
 
-#  In-Memory Subscription Store
+# 📦 In-Memory Subscription Store
 SUBSCRIPTIONS = []
 
-#  Task Model
+# 🗂️ Database Configuration
+app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///tasks.db'
+app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
+db = SQLAlchemy(app)
+
+# 📋 Task Model
 class Task(db.Model):
     id           = db.Column(db.Integer, primary_key=True)
     task         = db.Column(db.String(200), nullable=False)
     due_datetime = db.Column(db.DateTime, nullable=False)
     status       = db.Column(db.String(20), default='pending')  # pending, completed, overdue
 
-#  Create DB Tables
+# 🛠️ Create DB Tables
 with app.app_context():
     db.create_all()
 
-#  Background Job: Mark Overdue Tasks
+# ⏰ Background Job: Mark Overdue Tasks
 def check_task_status():
     with app.app_context():
         now   = datetime.now()
@@ -40,12 +40,12 @@ def check_task_status():
                 t.status = 'overdue'
         db.session.commit()
 
-#  Start Scheduler (runs every 120 minutes)
+# 🔁 Start Scheduler (runs every 1 minute)
 scheduler = BackgroundScheduler()
 scheduler.add_job(check_task_status, 'interval', minutes=1)
 scheduler.start()
 
-#  Web Push Helper
+# 📬 Web Push Helper
 def send_push_to_user(subscription_info, message_body):
     try:
         webpush(
@@ -59,7 +59,7 @@ def send_push_to_user(subscription_info, message_body):
         print("❌ Push failed:", repr(ex))
         return False
 
-#  Routes
+# 🌐 Routes
 
 ## Home: List Tasks
 @app.route('/')
@@ -115,34 +115,28 @@ def undo_task(task_id):
         db.session.commit()
     return redirect(url_for('home'))
 
-## Expose VAPID Public Key to Client
-@app.route('/vapidPublicKey')
-def get_vapid_public_key():
-    return jsonify({'publicKey': VAPID_PUBLIC_KEY})
-
-## Save a Subscription
-@app.route('/save-subscription', methods=['POST'])
-def save_subscription():
+## Save Push Subscription
+@app.route('/subscribe', methods=['POST'])
+def subscribe():
     subscription = request.get_json()
     if subscription and subscription not in SUBSCRIPTIONS:
         SUBSCRIPTIONS.append(subscription)
+        print("📬 New subscription saved:", subscription)
     return jsonify({'success': True})
 
-## Send Push Notification
-@app.route('/notify', methods=['POST'])
-def notify():
-    data         = request.get_json()
-    subscription = data.get('subscription')
-    message      = data.get('message', '🔔 You have a new task reminder!')
+## Send Push to All Subscribers
+@app.route('/send_push', methods=['POST'])
+def send_push():
+    message = request.get_json().get('message', '🔔 You have a new task reminder!')
+    results = []
 
-    if not subscription:
-        return jsonify({'error': 'Missing subscription info'}), 400
+    for sub in SUBSCRIPTIONS:
+        success = send_push_to_user(sub, message)
+        results.append({'endpoint': sub.get('endpoint'), 'status': 'sent' if success else 'failed'})
 
-    success = send_push_to_user(subscription, message)
-    return jsonify({'status': 'sent' if success else 'failed'})
+    return jsonify(results)
 
-#  Run the App
+# 🚀 Run the App
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=5000, debug=True)
-
 
