@@ -101,7 +101,11 @@
       }
     }
 
-    window.addEventListener('load', requestNotificationPermission);
+    window.addEventListener('load', () => {
+      requestNotificationPermission();
+      renderTasks();
+      startReminderLoop();
+    });
 
     fetch('/notify')
       .then(res => res.json())
@@ -125,7 +129,22 @@
 
     function renderTasks() {
       const container = document.getElementById('task-list');
-      const tasks = JSON.parse(localStorage.getItem('tasks')) || [];
+      let tasks = JSON.parse(localStorage.getItem('tasks')) || [];
+
+      const now = new Date();
+
+      // Mark overdue tasks
+      tasks = tasks.map(task => {
+        const due = new Date(task.dueDate);
+        if (task.status === 'pending' && due < now) {
+          return { ...task, status: 'overdue' };
+        }
+        return task;
+      });
+
+      // Sort by due date ascending
+      tasks.sort((a, b) => new Date(a.dueDate) - new Date(b.dueDate));
+
       container.innerHTML = '';
 
       if (tasks.length === 0) {
@@ -161,6 +180,41 @@
         `;
         container.appendChild(taskDiv);
       });
+
+      localStorage.setItem('tasks', JSON.stringify(tasks)); // Save updated statuses
+    }
+
+    function startReminderLoop() {
+      setInterval(() => {
+        let tasks = JSON.parse(localStorage.getItem('tasks')) || [];
+        const now = new Date();
+
+        tasks = tasks.map(task => {
+          const due = new Date(task.dueDate);
+          const timeDiff = due - now;
+
+          if (task.status === 'pending' && timeDiff > 0 && timeDiff <= 7200000) {
+            const lastNotified = task.lastNotified || 0;
+            const timeSinceLast = now.getTime() - lastNotified;
+
+            if (timeSinceLast >= 1800000) {
+              navigator.serviceWorker.ready.then(reg => {
+                reg.showNotification("⏰ Task Reminder", {
+                  body: `"${task.name}" is due at ${formatDate(task.dueDate)}.`,
+                  icon: "/static/icons/icon-192.png",
+                  badge: "/static/icons/icon-96.png"
+                });
+              });
+
+              task.lastNotified = now.getTime();
+            }
+          }
+
+          return task;
+        });
+
+        localStorage.setItem('tasks', JSON.stringify(tasks));
+      }, 60000); // Check every minute
     }
 
     function confirmDelete(id) {
@@ -194,11 +248,6 @@
     }
 
     function editTask(id) {
-      localStorage.setItem('editTaskId', id);
-      window.location.href = '/edit';
+  localStorage.setItem('editTaskId', id);
+  window.location.href = '/edit';
     }
-
-    renderTasks();
-  </script>
-</body>
-</html>
