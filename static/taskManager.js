@@ -5,12 +5,7 @@ function saveTasks() {
 }
 
 function addTask(name, dueDate) {
-  tasks.push({
-    id: Date.now(),
-    name,
-    dueDate,
-    status: 'pending'
-  });
+  tasks.push({ id: Date.now(), name, dueDate, status: 'pending' });
   saveTasks();
   renderTasks();
 }
@@ -60,14 +55,10 @@ function renderTasks() {
       <div class="task-date">Due: ${formatDate(task.dueDate)}</div>
       <div class="status-label ${statusClass}">
         ${statusLabel}
-        ${task.status === 'completed' ? `
-          <button class="btn-undo" onclick="undoTask(${task.id})">Undo</button>
-        ` : ''}
+        ${task.status === 'completed' ? `<button class="btn-undo" onclick="undoTask(${task.id})">Undo</button>` : ''}
       </div>
       <div class="btn-group">
-        ${task.status !== 'completed' ? `
-          <button class="btn btn-complete" onclick="completeTask(${task.id})">Complete</button>
-        ` : ''}
+        ${task.status !== 'completed' ? `<button class="btn btn-complete" onclick="completeTask(${task.id})">Complete</button>` : ''}
         <button class="btn btn-delete" onclick="deleteTask(${task.id})">Delete</button>
       </div>
     `;
@@ -77,14 +68,10 @@ function renderTasks() {
 
 function formatDate(dateStr) {
   const date = new Date(dateStr);
-  const options = {
-    hour: '2-digit',
-    minute: '2-digit',
-    day: '2-digit',
-    month: 'short',
-    year: 'numeric'
-  };
-  return date.toLocaleString('en-IN', options);
+  return date.toLocaleString('en-IN', {
+    hour: '2-digit', minute: '2-digit',
+    day: '2-digit', month: 'short', year: 'numeric'
+  });
 }
 
 function handleAdd(e) {
@@ -97,3 +84,4 @@ function handleAdd(e) {
     document.getElementById('dueDate').value = '';
   }
 }
+
