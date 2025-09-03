@@ -18,6 +18,7 @@
       min-height: 100vh;
       box-sizing: border-box;
     }
+
     .container {
       background: #ffffff;
       padding: 40px;
@@ -27,11 +28,13 @@
       max-width: 400px;
       text-align: center;
     }
+
     h1 {
       color: #2c3e50;
       margin-bottom: 25px;
       font-size: 26px;
     }
+
     label {
       display: block;
       text-align: left;
@@ -39,6 +42,7 @@
       margin-bottom: 8px;
       color: #34495e;
     }
+
     input[type="text"],
     input[type="datetime-local"] {
       width: 100%;
@@ -50,6 +54,7 @@
       background-color: #f9f9f9;
       box-sizing: border-box;
     }
+
     button {
       background: #4a90e2;
       color: white;
@@ -61,9 +66,11 @@
       transition: background 0.3s ease;
       width: 100%;
     }
+
     button:hover {
       background: #357ab8;
     }
+
     .back-link {
       display: block;
       margin-top: 18px;
@@ -71,9 +78,11 @@
       text-decoration: none;
       font-size: 14px;
     }
+
     .back-link:hover {
       text-decoration: underline;
     }
+
     .note {
       margin-top: 10px;
       font-size: 13px;
@@ -102,6 +111,7 @@
       e.preventDefault();
       const name = document.getElementById('task').value.trim();
       const due = document.getElementById('due_datetime').value;
+
       if (name && due) {
         const tasks = JSON.parse(localStorage.getItem('tasks')) || [];
         tasks.push({
@@ -113,6 +123,8 @@
         });
         localStorage.setItem('tasks', JSON.stringify(tasks));
         window.location.href = '/';
+      } else {
+        alert("Please enter both task name and due date.");
       }
     }
   </script>
