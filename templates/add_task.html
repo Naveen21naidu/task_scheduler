@@ -2,13 +2,11 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Add Task</title>
-  <link rel="manifest" href="{{ url_for('static', filename='manifest.json') }}">
-  <link rel="icon" href="{{ url_for('static', filename='icons/icon-192.png') }}" type="image/png">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <style>
     body {
-      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      font-family: Arial, sans-serif;
       background: linear-gradient(to right, #e0f7fa, #f0f4ff);
       margin: 0;
       padding: 20px;
@@ -16,77 +14,53 @@
       justify-content: center;
       align-items: center;
       min-height: 100vh;
-      box-sizing: border-box;
     }
-
     .container {
-      background: #ffffff;
-      padding: 40px;
-      border-radius: 16px;
-      box-shadow: 0 8px 20px rgba(0,0,0,0.1);
+      background: #fff;
+      padding: 30px;
+      border-radius: 12px;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.1);
       width: 100%;
       max-width: 400px;
-      text-align: center;
     }
-
     h1 {
-      color: #2c3e50;
-      margin-bottom: 25px;
-      font-size: 26px;
-    }
-
-    label {
-      display: block;
-      text-align: left;
-      font-weight: 600;
-      margin-bottom: 8px;
-      color: #34495e;
-    }
-
-    input[type="text"],
-    input[type="datetime-local"] {
-      width: 100%;
-      padding: 14px 16px;
+      text-align: center;
       margin-bottom: 20px;
-      border: 1px solid #ccc;
-      border-radius: 10px;
-      font-size: 16px;
-      background-color: #f9f9f9;
-      box-sizing: border-box;
+      color: #333;
     }
-
+    label {
+      font-weight: bold;
+      display: block;
+      margin-top: 15px;
+      margin-bottom: 5px;
+    }
+    input {
+      width: 100%;
+      padding: 10px;
+      font-size: 16px;
+      border-radius: 8px;
+      border: 1px solid #ccc;
+      margin-bottom: 15px;
+    }
     button {
-      background: #4a90e2;
+      width: 100%;
+      padding: 12px;
+      background-color: #007bff;
       color: white;
       border: none;
-      padding: 12px 20px;
+      border-radius: 8px;
       font-size: 16px;
-      border-radius: 10px;
       cursor: pointer;
-      transition: background 0.3s ease;
-      width: 100%;
     }
-
     button:hover {
-      background: #357ab8;
+      background-color: #0056b3;
     }
-
     .back-link {
       display: block;
-      margin-top: 18px;
+      text-align: center;
+      margin-top: 15px;
       color: #007bff;
       text-decoration: none;
-      font-size: 14px;
-    }
-
-    .back-link:hover {
-      text-decoration: underline;
-    }
-
-    .note {
-      margin-top: 10px;
-      font-size: 13px;
-      color: #7f8c8d;
     }
   </style>
 </head>
@@ -103,7 +77,6 @@
       <button type="submit">Add Task</button>
     </form>
     <a href="/" class="back-link">⬅ Back to Task List</a>
-    <div class="note">Time is in 24-hour format here. It will display as 12-hour on the homepage.</div>
   </div>
 
   <script>
