@@ -2,22 +2,80 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <title>Task Scheduler</title>
+  <title>📋 My Tasks</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <link rel="manifest" href="{{ url_for('static', filename='manifest.json') }}">
   <link rel="icon" href="{{ url_for('static', filename='icons/icon-192.png') }}" type="image/png">
   <style>
-    /* Your full CSS from earlier goes here — unchanged */
+    body {
+      font-family: Arial, sans-serif;
+      background-color: #e6f2ff;
+      margin: 0;
+      padding: 20px;
+    }
+    h1 {
+      text-align: center;
+      color: #333;
+    }
+    .task-container {
+      background-color: #fff;
+      border-radius: 8px;
+      padding: 15px;
+      margin-bottom: 15px;
+      box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+    }
+    .task-title {
+      font-size: 18px;
+      font-weight: bold;
+      margin-bottom: 5px;
+    }
+    .task-date {
+      font-size: 14px;
+      color: #555;
+      margin-bottom: 10px;
+    }
+    .btn-group {
+      display: flex;
+      gap: 10px;
+    }
+    .btn {
+      padding: 6px 12px;
+      border: none;
+      border-radius: 4px;
+      color: white;
+      cursor: pointer;
+      font-size: 14px;
+    }
+    .btn-edit { background-color: #007bff; }
+    .btn-delete { background-color: #dc3545; }
+    .btn-complete { background-color: #28a745; }
+    .status-label {
+      font-size: 14px;
+      margin-bottom: 10px;
+    }
+    .status-pending { color: #ffc107; }
+    .status-completed { color: #28a745; }
+    .status-overdue { color: #dc3545; }
+    .no-tasks {
+      text-align: center;
+      font-size: 16px;
+      color: #666;
+      margin-top: 30px;
+    }
+    .add-link {
+      display: block;
+      text-align: center;
+      margin-top: 20px;
+      font-size: 16px;
+      color: #007bff;
+      text-decoration: none;
+    }
   </style>
 </head>
 <body>
   <h1>📋 My Tasks</h1>
   <div id="task-list"></div>
-  <form onsubmit="handleAdd(event)">
-    <input type="text" id="taskName" placeholder="Task name" required>
-    <input type="datetime-local" id="dueDate" required>
-    <button class="add-btn" type="submit">Add Task</button>
-  </form>
+  <a href="/add" class="add-link">➕ Add New Task</a>
 
   <script>
     if ('serviceWorker' in navigator) {
@@ -55,9 +113,72 @@
           });
         });
       });
-  </script>
 
-  <script src="{{ url_for('static', filename='taskManager.js') }}"></script>
-  <script>renderTasks();</script>
+    function formatDate(dateStr) {
+      const date = new Date(dateStr);
+      return date.toLocaleString('en-IN', {
+        hour: '2-digit', minute: '2-digit',
+        day: '2-digit', month: 'short', year: 'numeric'
+      });
+    }
+
+    function renderTasks() {
+      const container = document.getElementById('task-list');
+      const tasks = JSON.parse(localStorage.getItem('tasks')) || [];
+      container.innerHTML = '';
+
+      if (tasks.length === 0) {
+        container.innerHTML = `<div class="no-tasks">🎉 No tasks yet! Click below to add one.</div>`;
+        return;
+      }
+
+      tasks.forEach(task => {
+        const statusClass =
+          task.status === 'completed' ? 'status-completed' :
+          task.status === 'overdue' ? 'status-overdue' :
+          'status-pending';
+
+        const statusLabel =
+          task.status === 'completed' ? '✅ Completed' :
+          task.status === 'overdue' ? '⚠️ Overdue' :
+          '⏳ Pending';
+
+        const taskDiv = document.createElement('div');
+        taskDiv.className = 'task-container';
+        taskDiv.innerHTML = `
+          <div class="task-title">${task.name}</div>
+          <div class="task-date">Due: ${formatDate(task.dueDate)}</div>
+          <div class="status-label ${statusClass}">${statusLabel}</div>
+          <div class="btn-group">
+            <button class="btn btn-edit" onclick="editTask(${task.id})">Edit</button>
+            <button class="btn btn-delete" onclick="deleteTask(${task.id})">Delete</button>
+            <button class="btn btn-complete" onclick="completeTask(${task.id})">Complete</button>
+          </div>
+        `;
+        container.appendChild(taskDiv);
+      });
+    }
+
+    function editTask(id) {
+      localStorage.setItem('editTaskId', id);
+      window.location.href = '/edit';
+    }
+
+    function deleteTask(id) {
+      let tasks = JSON.parse(localStorage.getItem('tasks')) || [];
+      tasks = tasks.filter(t => t.id !== id);
+      localStorage.setItem('tasks', JSON.stringify(tasks));
+      renderTasks();
+    }
+
+    function completeTask(id) {
+      let tasks = JSON.parse(localStorage.getItem('tasks')) || [];
+      tasks = tasks.map(t => t.id === id ? { ...t, status: 'completed' } : t);
+      localStorage.setItem('tasks', JSON.stringify(tasks));
+      renderTasks();
+    }
+
+    renderTasks();
+  </script>
 </body>
 </html>

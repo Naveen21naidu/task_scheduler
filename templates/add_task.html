@@ -4,12 +4,14 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Add Task</title>
+  <link rel="manifest" href="{{ url_for('static', filename='manifest.json') }}">
+  <link rel="icon" href="{{ url_for('static', filename='icons/icon-192.png') }}" type="image/png">
   <style>
     body {
       font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
       background: linear-gradient(to right, #e0f7fa, #f0f4ff);
       margin: 0;
-      padding: 20px; /* Prevent edge contact */
+      padding: 20px;
       display: flex;
       justify-content: center;
       align-items: center;
@@ -91,18 +93,32 @@
 <body>
   <div class="container">
     <h1>➕ Add New Task</h1>
-    <form method="POST">
+    <form onsubmit="handleAdd(event)">
       <label for="task">Task Name:</label>
-      <input type="text" id="task" name="task" required>
+      <input type="text" id="task" required>
 
       <label for="due_datetime">Due Date & Time:</label>
-      <input type="datetime-local" id="due_datetime" name="due_datetime" required>
+      <input type="datetime-local" id="due_datetime" required>
 
       <button type="submit">Add Task</button>
     </form>
-    <a href="{{ url_for('home') }}" class="back-link">⬅ Back to Task List</a>
+    <a href="/" class="back-link">⬅ Back to Task List</a>
     <div class="note">Time is in 24-hour format here. It will display as 12-hour on the homepage.</div>
   </div>
+
+  <script>
+    function handleAdd(e) {
+      e.preventDefault();
+      const name = document.getElementById('task').value;
+      const due = document.getElementById('due_datetime').value;
+      if (name && due) {
+        const tasks = JSON.parse(localStorage.getItem('tasks')) || [];
+        tasks.push({ id: Date.now(), name, dueDate: due, status: 'pending' });
+        localStorage.setItem('tasks', JSON.stringify(tasks));
+        window.location.href = '/';
+      }
+    }
+  </script>
 </body>
 </html>
 
