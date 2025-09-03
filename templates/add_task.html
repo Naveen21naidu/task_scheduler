@@ -109,11 +109,18 @@
   <script>
     function handleAdd(e) {
       e.preventDefault();
-      const name = document.getElementById('task').value;
+      const name = document.getElementById('task').value.trim();
       const due = document.getElementById('due_datetime').value;
+
       if (name && due) {
         const tasks = JSON.parse(localStorage.getItem('tasks')) || [];
-        tasks.push({ id: Date.now(), name, dueDate: due, status: 'pending' });
+        tasks.push({
+          id: Date.now(),
+          name,
+          dueDate: due,
+          status: 'pending',
+          lastNotified: 0
+        });
         localStorage.setItem('tasks', JSON.stringify(tasks));
         window.location.href = '/';
       }
@@ -121,7 +128,3 @@
   </script>
 </body>
 </html>
-
-
-
-
