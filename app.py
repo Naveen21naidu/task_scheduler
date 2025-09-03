@@ -1,7 +1,4 @@
-from flask import Flask, render_template, url_for, redirect, request, jsonify
-from flask_sqlalchemy import SQLAlchemy
-from datetime import datetime
-from apscheduler.schedulers.background import BackgroundScheduler
+from flask import Flask, render_template, url_for, request, jsonify
 from pywebpush import webpush, WebPushException
 
 app = Flask(__name__)
@@ -13,37 +10,6 @@ VAPID_EMAIL       = "mailto:your@email.com"
 
 # 📦 In-Memory Subscription Store
 SUBSCRIPTIONS = []
-
-# 🗂️ Database Configuration
-app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///tasks.db'
-app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
-db = SQLAlchemy(app)
-
-# 📋 Task Model
-class Task(db.Model):
-    id           = db.Column(db.Integer, primary_key=True)
-    task         = db.Column(db.String(200), nullable=False)
-    due_datetime = db.Column(db.DateTime, nullable=False)
-    status       = db.Column(db.String(20), default='pending')  # pending, completed, overdue
-
-# 🛠️ Create DB Tables
-with app.app_context():
-    db.create_all()
-
-# ⏰ Background Job: Mark Overdue Tasks
-def check_task_status():
-    with app.app_context():
-        now   = datetime.now()
-        tasks = Task.query.filter(Task.status != 'completed').all()
-        for t in tasks:
-            if t.due_datetime < now:
-                t.status = 'overdue'
-        db.session.commit()
-
-# 🔁 Start Scheduler (runs every 1 minute)
-scheduler = BackgroundScheduler()
-scheduler.add_job(check_task_status, 'interval', minutes=1)
-scheduler.start()
 
 # 📬 Web Push Helper
 def send_push_to_user(subscription_info, message_body):
@@ -61,59 +27,10 @@ def send_push_to_user(subscription_info, message_body):
 
 # 🌐 Routes
 
-## Home: List Tasks
+## Home Page
 @app.route('/')
 def home():
-    check_task_status()
-    tasks = Task.query.order_by(Task.due_datetime).all()
-    return render_template('home.html', tasks=tasks)
-
-## Add Task
-@app.route('/add', methods=['GET', 'POST'])
-def add_task():
-    if request.method == 'POST':
-        name = request.form['task']
-        due  = datetime.strptime(request.form['due_datetime'], '%Y-%m-%dT%H:%M')
-        db.session.add(Task(task=name, due_datetime=due))
-        db.session.commit()
-        return redirect(url_for('home'))
-    return render_template('add_task.html')
-
-## Edit Task
-@app.route('/edit/<int:task_id>', methods=['GET', 'POST'])
-def edit_task(task_id):
-    task = Task.query.get_or_404(task_id)
-    if request.method == 'POST':
-        task.task         = request.form['task']
-        task.due_datetime = datetime.strptime(request.form['due_datetime'], '%Y-%m-%dT%H:%M')
-        db.session.commit()
-        return redirect(url_for('home'))
-    return render_template('edit_task.html', task=task)
-
-## Delete Task
-@app.route('/delete/<int:task_id>')
-def delete_task(task_id):
-    t = Task.query.get_or_404(task_id)
-    db.session.delete(t)
-    db.session.commit()
-    return redirect(url_for('home'))
-
-## Complete Task
-@app.route('/complete/<int:task_id>')
-def complete_task(task_id):
-    t = Task.query.get_or_404(task_id)
-    t.status = 'completed'
-    db.session.commit()
-    return redirect(url_for('home'))
-
-## Undo Completion
-@app.route('/undo/<int:task_id>')
-def undo_task(task_id):
-    t = Task.query.get_or_404(task_id)
-    if t.status == 'completed':
-        t.status = 'pending'
-        db.session.commit()
-    return redirect(url_for('home'))
+    return render_template('home.html')
 
 ## Save Push Subscription
 @app.route('/subscribe', methods=['POST'])
@@ -135,6 +52,16 @@ def send_push():
         results.append({'endpoint': sub.get('endpoint'), 'status': 'sent' if success else 'failed'})
 
     return jsonify(results)
+
+## Optional: Test Notification
+@app.route('/notify')
+def notify():
+    return jsonify({
+        "title": "🔔 Task Scheduler",
+        "body": "Push notifications are active!",
+        "icon": "/static/icons/icon-192.png",
+        "badge": "/static/icons/icon-96.png"
+    })
 
 # 🚀 Run the App
 if __name__ == '__main__':
