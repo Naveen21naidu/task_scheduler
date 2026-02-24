@@ -1,71 +1,154 @@
-from flask import Flask, render_template, request, jsonify
-from pywebpush import webpush, WebPushException
+from flask import Flask, render_template, request, redirect, url_for, flash
+from flask_sqlalchemy import SQLAlchemy
+from flask_login import LoginManager, UserMixin, login_user, logout_user, login_required, current_user
+from werkzeug.security import generate_password_hash, check_password_hash
+from urllib.parse import quote_plus
+from datetime import datetime
+from dotenv import load_dotenv
+import os
+
+load_dotenv()
 
 app = Flask(__name__)
 
-# 🔐 VAPID Keys for Web Push
-VAPID_PUBLIC_KEY  = "BBiVJi8--fMfDeRDHI4RRYzv_CFlzDFqL7o3ahnFH_hWDl0q-mxcLpWoWwKL3eyF4OwYPYV1YmDMg4lngmyLkNE="
-VAPID_PRIVATE_KEY = "LS0tLS1CRUdJTiBQUklWQVRFIEtFWS0tLS0tCk1JR0hBZ0VBTUJNR0J5cUdTTTQ5QWdFR0NDcUdTTTQ5QXdFSEJHMHdhd0lCQVFRZytiZ3lyeDdwTXdTOU43bG0KejQzVzYySGo3ZUJZUmZkcEVnMUoyTU9uY2hlaFJBTkNBQVFZbFNZdlB2bnpIdzNrUXh5T0VVV003L3doWmN3eAphaSs2TjJvWnhSLzRWZzVkS3Zwc1hDNlZxRnNDaTkzc2hlRHNHRDJGZFdKZ3pJT0paNEpzaTVEUgotLS0tLUVORCBQUklWQVRFIEtFWS0tLS0tCg=="
-VAPID_EMAIL       = "mailto:your@email.com"
+app.config['SECRET_KEY'] = os.getenv('SECRET_KEY')
+password = quote_plus(os.getenv('DB_PASSWORD'))
+app.config['SQLALCHEMY_DATABASE_URI'] = f'mysql+pymysql://root:{password}@localhost/task_scheduler'
+app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 
-# 📦 In-Memory Subscription Store
-SUBSCRIPTIONS = []
+db = SQLAlchemy(app)
+login_manager = LoginManager(app)
+login_manager.login_view = 'login'
 
-# 🌐 Routes
+# ─────────────────────────────────────
+# MODELS
+# ─────────────────────────────────────
 
-## Home Page — Task List
+class User(UserMixin, db.Model):
+    __tablename__ = 'users'
+    id = db.Column(db.Integer, primary_key=True)
+    username = db.Column(db.String(100), unique=True, nullable=False)
+    email = db.Column(db.String(150), unique=True, nullable=False)
+    password = db.Column(db.String(255), nullable=False)
+    tasks = db.relationship('Task', backref='owner', lazy=True)
+
+class Task(db.Model):
+    __tablename__ = 'tasks'
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
+    task = db.Column(db.String(200), nullable=False)
+    due_datetime = db.Column(db.DateTime, nullable=False)
+    status = db.Column(db.String(20), default='pending')
+
+@login_manager.user_loader
+def load_user(user_id):
+    return User.query.get(int(user_id))
+
+# ─────────────────────────────────────
+# ROUTES
+# ─────────────────────────────────────
+
 @app.route('/')
+@login_required
 def home():
-    return render_template('home.html')
+    tasks = Task.query.filter_by(user_id=current_user.id).all()
+    now = datetime.now()
+    for task in tasks:
+        if task.status == 'pending' and task.due_datetime < now:
+            task.status = 'overdue'
+    db.session.commit()
+    return render_template('home.html', tasks=tasks)
 
-## Add Task Page
-@app.route('/add')
+@app.route('/register', methods=['GET', 'POST'])
+def register():
+    if request.method == 'POST':
+        username = request.form['username']
+        email = request.form['email']
+        existing_user = User.query.filter_by(email=email).first()
+        if existing_user:
+            flash('Email already registered! Please login.', 'danger')
+            return redirect(url_for('register'))
+        password = generate_password_hash(request.form['password'])
+        user = User(username=username, email=email, password=password)
+        db.session.add(user)
+        db.session.commit()
+        flash('Account created! Please login.', 'success')
+        return redirect(url_for('login'))
+    return render_template('register.html')
+
+@app.route('/login', methods=['GET', 'POST'])
+def login():
+    if request.method == 'POST':
+        email = request.form['email']
+        password = request.form['password']
+        user = User.query.filter_by(email=email).first()
+        if user and check_password_hash(user.password, password):
+            login_user(user)
+            return redirect(url_for('home'))
+        flash('Invalid email or password!', 'danger')
+    return render_template('login.html')
+
+@app.route('/logout')
+@login_required
+def logout():
+    logout_user()
+    flash('Logged out successfully!', 'success')
+    return redirect(url_for('login'))
+
+@app.route('/add', methods=['GET', 'POST'])
+@login_required
 def add_task():
+    if request.method == 'POST':
+        task = Task(
+            user_id=current_user.id,
+            task=request.form['task'],
+            due_datetime=datetime.strptime(request.form['due_datetime'], '%Y-%m-%dT%H:%M'),
+            status='pending'
+        )
+        db.session.add(task)
+        db.session.commit()
+        flash('Task added successfully!', 'success')
+        return redirect(url_for('home'))
     return render_template('add_task.html')
 
-## Edit Task Page
-@app.route('/edit')
-def edit_task():
-    return render_template('edit_task.html')
+@app.route('/edit/<int:task_id>', methods=['GET', 'POST'])
+@login_required
+def edit_task(task_id):
+    task = Task.query.filter_by(id=task_id, user_id=current_user.id).first_or_404()
+    if request.method == 'POST':
+        task.task = request.form['task']
+        task.due_datetime = datetime.strptime(request.form['due_datetime'], '%Y-%m-%dT%H:%M')
+        db.session.commit()
+        flash('Task updated!', 'success')
+        return redirect(url_for('home'))
+    return render_template('edit_task.html', task=task)
 
-## Save Push Subscription
-@app.route('/subscribe', methods=['POST'])
-def subscribe():
-    subscription = request.get_json()
-    if subscription and subscription not in SUBSCRIPTIONS:
-        SUBSCRIPTIONS.append(subscription)
-        print("📬 New subscription saved:", subscription)
-    return jsonify({'success': True})
+@app.route('/delete/<int:task_id>')
+@login_required
+def delete_task(task_id):
+    task = Task.query.filter_by(id=task_id, user_id=current_user.id).first_or_404()
+    db.session.delete(task)
+    db.session.commit()
+    flash('Task deleted!', 'success')
+    return redirect(url_for('home'))
 
-## Send Push to All Subscribers
-@app.route('/send_push', methods=['POST'])
-def send_push():
-    message = request.get_json().get('message', '🔔 You have a new task reminder!')
-    results = []
-    for sub in SUBSCRIPTIONS:
-        try:
-            webpush(
-                subscription_info=sub,
-                data=message,
-                vapid_private_key=VAPID_PRIVATE_KEY,
-                vapid_claims={"sub": VAPID_EMAIL}
-            )
-            results.append({'endpoint': sub.get('endpoint'), 'status': 'sent'})
-        except WebPushException as ex:
-            print("❌ Push failed:", repr(ex))
-            results.append({'endpoint': sub.get('endpoint'), 'status': 'failed'})
-    return jsonify(results)
+@app.route('/complete/<int:task_id>')
+@login_required
+def complete_task(task_id):
+    task = Task.query.filter_by(id=task_id, user_id=current_user.id).first_or_404()
+    task.status = 'completed'
+    db.session.commit()
+    flash('Task completed! 🎉', 'success')
+    return redirect(url_for('home'))
 
-## Optional: Test Notification
-@app.route('/notify')
-def notify():
-    return jsonify({
-        "title": "🔔 Task Scheduler",
-        "body": "Push notifications are active!",
-        "icon": "/static/icons/icon-192.png",
-        "badge": "/static/icons/icon-96.png"
-    })
+@app.route('/undo/<int:task_id>')
+@login_required
+def undo_task(task_id):
+    task = Task.query.filter_by(id=task_id, user_id=current_user.id).first_or_404()
+    task.status = 'pending'
+    db.session.commit()
+    flash('Task marked as pending!', 'success')
+    return redirect(url_for('home'))
 
-# 🚀 Run the App
 if __name__ == '__main__':
-    app.run(host='0.0.0.0', port=5000, debug=True)
+    app.run(debug=True)

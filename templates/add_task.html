@@ -5,101 +5,29 @@
   <title>Add Task</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <style>
-    body {
-      font-family: Arial, sans-serif;
-      background: linear-gradient(to right, #e0f7fa, #f0f4ff);
-      margin: 0;
-      padding: 20px;
-      display: flex;
-      justify-content: center;
-      align-items: center;
-      min-height: 100vh;
-    }
-    .container {
-      background: #fff;
-      padding: 30px;
-      border-radius: 12px;
-      box-shadow: 0 4px 12px rgba(0,0,0,0.1);
-      width: 100%;
-      max-width: 400px;
-    }
-    h1 {
-      text-align: center;
-      margin-bottom: 20px;
-      color: #333;
-    }
-    label {
-      font-weight: bold;
-      display: block;
-      margin-top: 15px;
-      margin-bottom: 5px;
-    }
-    input {
-      width: 100%;
-      padding: 10px;
-      font-size: 16px;
-      border-radius: 8px;
-      border: 1px solid #ccc;
-      margin-bottom: 15px;
-    }
-    button {
-      width: 100%;
-      padding: 12px;
-      background-color: #007bff;
-      color: white;
-      border: none;
-      border-radius: 8px;
-      font-size: 16px;
-      cursor: pointer;
-    }
-    button:hover {
-      background-color: #0056b3;
-    }
-    .back-link {
-      display: block;
-      text-align: center;
-      margin-top: 15px;
-      color: #007bff;
-      text-decoration: none;
-    }
+    body { font-family: Arial, sans-serif; background: linear-gradient(to right, #e0f7fa, #f0f4ff); margin: 0; padding: 20px; display: flex; justify-content: center; align-items: center; min-height: 100vh; }
+    .container { background: #fff; padding: 30px; border-radius: 12px; box-shadow: 0 4px 12px rgba(0,0,0,0.1); width: 100%; max-width: 400px; }
+    h1 { text-align: center; margin-bottom: 20px; color: #333; }
+    label { font-weight: bold; display: block; margin-top: 15px; margin-bottom: 5px; }
+    input { width: 100%; padding: 10px; font-size: 16px; border-radius: 8px; border: 1px solid #ccc; margin-bottom: 15px; box-sizing: border-box; }
+    button { width: 100%; padding: 12px; background-color: #007bff; color: white; border: none; border-radius: 8px; font-size: 16px; cursor: pointer; }
+    button:hover { background-color: #0056b3; }
+    .back-link { display: block; text-align: center; margin-top: 15px; color: #007bff; text-decoration: none; }
   </style>
 </head>
 <body>
   <div class="container">
     <h1>➕ Add New Task</h1>
-    <form onsubmit="handleAdd(event)">
-      <label for="task">Task Name:</label>
-      <input type="text" id="task" required>
+    <form method="POST">
+      <label>Task Name:</label>
+      <input type="text" name="task" required>
 
-      <label for="due_datetime">Due Date & Time:</label>
-      <input type="datetime-local" id="due_datetime" required>
+      <label>Due Date & Time:</label>
+      <input type="datetime-local" name="due_datetime" required>
 
       <button type="submit">Add Task</button>
     </form>
     <a href="/" class="back-link">⬅ Back to Task List</a>
   </div>
-
-  <script>
-    function handleAdd(e) {
-      e.preventDefault();
-      const name = document.getElementById('task').value.trim();
-      const due = document.getElementById('due_datetime').value;
-
-      if (name && due) {
-        const tasks = JSON.parse(localStorage.getItem('tasks')) || [];
-        tasks.push({
-          id: Date.now(),
-          name,
-          dueDate: due,
-          status: 'pending',
-          lastNotified: 0
-        });
-        localStorage.setItem('tasks', JSON.stringify(tasks));
-        window.location.href = '/';
-      } else {
-        alert("Please enter both task name and due date.");
-      }
-    }
-  </script>
 </body>
 </html>
